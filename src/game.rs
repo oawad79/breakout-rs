@@ -1,17 +1,25 @@
+use glow::Context;
+
 enum GameState {
     GameActive,
     GameMenu,
     GameWin,
 }
 
-struct Game {
+pub struct Game {
     state: GameState,
+    width: u32,
+    height: u32,
 }
 
 impl Game {
-    pub fn new() -> Self {
+    pub fn new(width: u32, height: u32) -> Self {
         Self {
             state: GameState::GameMenu,
+            width,
+            height,
         }
     }
+
+    pub fn init(&self, gl: &Context) {}
 }

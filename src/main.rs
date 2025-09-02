@@ -1,16 +1,22 @@
-#![warn(
-    clippy::all,
-    clippy::pedantic,
-    // clippy::restriction,
-    clippy::nursery,
-    clippy::cargo,
-)]
+// #![warn(
+//     clippy::all,
+//     clippy::pedantic,
+//     // clippy::restriction,
+//     clippy::nursery,
+//     clippy::cargo,
+// )]
 
 use std::rc::Rc;
 
 use glow::*;
+use nalgebra_glm as glm;
 
-mod game;
+// mod game;
+// mod resource_manager;
+mod shader;
+use shader::Shader;
+
+//use game::Game;
 
 const SCR_WIDTH: u32 = 800;
 const SCR_HEIGHT: u32 = 600;
@@ -19,15 +25,32 @@ fn main() {
     unsafe {
         // Create a context from a glutin window on non-wasm32 targets
         let (gl, gl_surface, gl_context, shader_version, window, event_loop) = {
-            use glutin::{
-                config::{ConfigTemplateBuilder, GlConfig},
-                context::{ContextApi, ContextAttributesBuilder, NotCurrentGlContext},
-                display::{GetGlDisplay, GlDisplay},
-                surface::{GlSurface, SwapInterval},
-            };
-            use glutin_winit::{DisplayBuilder, GlWindow};
-            use raw_window_handle::HasRawWindowHandle;
             use std::num::NonZeroU32;
+
+            use glutin::{
+                config::{
+                    ConfigTemplateBuilder,
+                    GlConfig,
+                },
+                context::{
+                    ContextApi,
+                    ContextAttributesBuilder,
+                    NotCurrentGlContext,
+                },
+                display::{
+                    GetGlDisplay,
+                    GlDisplay,
+                },
+                surface::{
+                    GlSurface,
+                    SwapInterval,
+                },
+            };
+            use glutin_winit::{
+                DisplayBuilder,
+                GlWindow,
+            };
+            use raw_window_handle::HasRawWindowHandle;
 
             let event_loop = winit::event_loop::EventLoopBuilder::new().build().unwrap();
             let window_builder = winit::window::WindowBuilder::new()
@@ -40,8 +63,9 @@ fn main() {
 
             let (window, gl_config) = display_builder
                 .build(&event_loop, template, |configs| {
+                    use glutin::config::Config;
                     configs
-                        .reduce(|accum, config| {
+                        .reduce(|accum: Config, config: Config| {
                             if config.num_samples() > accum.num_samples() {
                                 config
                             } else {
@@ -93,11 +117,19 @@ fn main() {
             )
         };
 
+        gl.polygon_mode(glow::FRONT_AND_BACK, glow::LINE);
+        //let game = Game::new(SCR_WIDTH, SCR_HEIGHT);
+        //game.init(&gl);
+
         let vertex_shader_source = r#"
             #version 410 core
             layout (location = 0) in vec3 aPos;
+
+            uniform mat4 model;
+            uniform mat4 projection;
+
             void main() {
-                gl_Position = vec4(aPos, 1.0);
+                gl_Position = projection * model * vec4(aPos.xy, 0.0, 1.0);
             }
         "#;
 
@@ -109,49 +141,27 @@ fn main() {
             }
         "#;
 
-        let program = gl.create_program().expect("Cannot create program");
+        let level: Vec<Vec<u32>> = vec![
+            vec![1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            vec![1, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+            vec![1, 3, 3, 3, 3, 3, 3, 3, 3, 1],
+            vec![1, 4, 4, 4, 4, 4, 4, 4, 4, 1],
+            vec![1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        ]; 
 
-        let vertex_shader = gl.create_shader(glow::VERTEX_SHADER).unwrap();
-        gl.shader_source(vertex_shader, vertex_shader_source);
-        gl.compile_shader(vertex_shader);
-        if !gl.get_shader_compile_status(vertex_shader) {
-            panic!(
-                "Vertex shader compilation failed: {}",
-                gl.get_shader_info_log(vertex_shader)
-            );
-        }
+        let shader = Shader::new(gl.clone(), 
+            vertex_shader_source.to_string(), 
+            fragment_shader_source.to_string(), None);
 
-        gl.attach_shader(program, vertex_shader);
-
-        let fragment_shader = gl.create_shader(glow::FRAGMENT_SHADER).unwrap();
-        gl.shader_source(fragment_shader, fragment_shader_source);
-        gl.compile_shader(fragment_shader);
-        if !gl.get_shader_compile_status(fragment_shader) {
-            panic!(
-                "Fragment shader compilation failed: {}",
-                gl.get_shader_info_log(fragment_shader)
-            );
-        }
-
-        gl.attach_shader(program, fragment_shader);
-        gl.link_program(program);
-        if !gl.get_program_link_status(program) {
-            panic!(
-                "Program linking failed: {}",
-                gl.get_program_info_log(program)
-            );
-        }
-
-        gl.detach_shader(program, vertex_shader);
-        gl.delete_shader(vertex_shader);
-
-        gl.detach_shader(program, fragment_shader);
-        gl.delete_shader(fragment_shader);
-
-        let vertices: [f32; 9] = [
-            -0.5, -0.5, 0.0, // left
-            0.5, -0.5, 0.0, // right
-            0.0, 0.5, 0.0, // top
+        #[rustfmt::skip]
+        let vertices: [f32; 12] = [
+            // pos      // tex
+            0.0, 1.0, 
+            1.0, 0.0, 
+            0.0, 0.0, 
+            0.0, 1.0, 
+            1.0, 1.0, 
+            1.0, 0.0,
         ];
 
         let vbo = gl.create_buffer().expect("Cannot create buffer");
@@ -170,10 +180,10 @@ fn main() {
 
         gl.vertex_attrib_pointer_f32(
             0,
-            3,
+            2,
             glow::FLOAT,
             false,
-            3 * std::mem::size_of::<f32>() as i32,
+            2 * std::mem::size_of::<f32>() as i32,
             0,
         );
 
@@ -185,9 +195,22 @@ fn main() {
         let mut current_width = SCR_WIDTH;
         let mut current_height = SCR_HEIGHT;
 
+        let tile_width = current_width / level[0].len() as u32;
+        let tile_height = (current_height as f32 / 2.0) / level.len() as f32;
+        let num_tiles = level[0].len();
+        let rows = level.len();
+
+        shader.use_program();
+
+        let projection = glm::ortho(0.0, SCR_WIDTH as f32, SCR_HEIGHT as f32, 0.0, -1.0, 1.0);
+        shader.matrix_4_f32("projection", projection.as_slice());
+
         {
             use glutin::prelude::GlSurface;
-            use winit::event::{Event, WindowEvent};
+            use winit::event::{
+                Event,
+                WindowEvent,
+            };
 
             let _ = event_loop.run(move |event, elwt| {
                 if let Event::WindowEvent { event, .. } = event {
@@ -197,7 +220,7 @@ fn main() {
                         WindowEvent::CloseRequested => {
                             gl.delete_buffer(vbo);
                             gl.delete_vertex_array(vao);
-                            gl.delete_program(program);
+                            shader.clean();
 
                             elwt.exit();
                         }
@@ -209,11 +232,28 @@ fn main() {
                             //gl.enable(glow::DEPTH_TEST);
                             gl.clear(glow::COLOR_BUFFER_BIT);
 
-                            gl.use_program(Some(program));
-                            gl.bind_vertex_array(Some(vao));
-                            gl.draw_arrays(glow::TRIANGLES, 0, 3);
-                            gl.bind_vertex_array(None);
+                            //gl.use_program(Some(program));
+                            shader.use_program();
 
+                            for row in 0..rows {
+                                for tile in 0..num_tiles {
+                                    let mut model = glm::Mat4::identity();
+                                    println!("x = {}, y = {}", (tile_width * tile as u32) as f32, (tile_height * row as f32) as f32);
+                                    model = glm::translate(&model, &glm::vec3((tile_width * tile as u32) as f32, (tile_height * row as f32) as f32, 0.0));
+                                    model = glm::translate(&model, &glm::vec3(0.5 * tile_width as f32, 0.5 * tile_height as f32, 0.0));
+                                    model = glm::rotate(&model, 0.0f32.to_radians(), &glm::vec3(0.0, 0.0, 1.0));
+                                    model = glm::translate(&model, &glm::vec3(-0.5 * tile_width as f32, -0.5 * tile_height as f32, 0.0));
+                                    model = glm::scale(&model, &glm::vec3(tile_width as f32, tile_height as f32, 1.0));
+                                    shader.matrix_4_f32("model", model.as_slice());
+
+                                    gl.bind_vertex_array(Some(vao));
+                                    gl.draw_arrays(glow::TRIANGLES, 0, 6);
+                                    gl.bind_vertex_array(None);
+
+                                }
+                            }
+
+                            
                             gl_surface.swap_buffers(&gl_context).unwrap();
                         }
                         WindowEvent::Resized(physical_size) => {
