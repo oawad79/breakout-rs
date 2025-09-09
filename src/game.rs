@@ -53,13 +53,13 @@ impl Game {
             .matrix_4_f32("projection", projection.as_slice());
 
         let mut game_level1 = GameLevel::new();
-        game_level1.load("resources/levels/one.lvl", self.width, self.height);
+        game_level1.load("resources/levels/one.lvl", self.width, self.height / 2);
         let mut game_level2 = GameLevel::new();
-        game_level2.load("resources/levels/two.lvl", self.width, self.height);
+        game_level2.load("resources/levels/two.lvl", self.width, self.height / 2);
         let mut game_level3 = GameLevel::new();
-        game_level3.load("resources/levels/three.lvl", self.width, self.height);
+        game_level3.load("resources/levels/three.lvl", self.width, self.height / 2);
         let mut game_level4 = GameLevel::new();
-        game_level4.load("resources/levels/four.lvl", self.width, self.height);
+        game_level4.load("resources/levels/four.lvl", self.width, self.height / 2);
 
         self.levels.push(game_level1);
         self.levels.push(game_level2);
