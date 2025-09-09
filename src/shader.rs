@@ -2,6 +2,7 @@ use std::rc::Rc;
 
 use glow::*;
 
+#[derive(Clone)]
 pub struct Shader {
     gl: Rc<Context>,
     program: NativeProgram,
@@ -77,10 +78,11 @@ impl Shader {
         Self { gl, program }
     }
 
-    pub fn use_program(&self) {
+    pub fn use_program(&self) -> &Self {
         unsafe {
             self.gl.use_program(Some(self.program));
         }
+        self
     }
 
     pub fn matrix_4_f32(&self, name: &str, matrix: &[f32]) {
