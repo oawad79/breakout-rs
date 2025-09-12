@@ -22,8 +22,10 @@ pub struct Game {
     state: GameState,
     width: u32,
     height: u32,
-    levels: Vec<GameLevel>,
+    pub levels: Vec<GameLevel>,
     renderer: Option<Box<SpriteRenderer>>,
+    pub current_level: usize,
+    pub keys_processed: [bool; 1024],
 }
 
 impl Game {
@@ -36,6 +38,8 @@ impl Game {
             height,
             levels: Vec::new(),
             renderer: None,
+            current_level: 0,
+            keys_processed: [false; 1024],
         }
     }
 
@@ -74,7 +78,7 @@ impl Game {
 
     pub fn render(&self) {
         if self.state == GameState::Active {
-            self.levels[0].draw(self.renderer.as_ref().unwrap());
+            self.levels[self.current_level].draw(self.renderer.as_ref().unwrap());
         }
     }
 }

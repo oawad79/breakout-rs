@@ -13,11 +13,16 @@ use glutin::{
 };
 use winit::{
     event::{
+        ElementState,
         Event,
         KeyEvent,
         WindowEvent,
     },
     event_loop::EventLoopWindowTarget,
+    keyboard::{
+        KeyCode,
+        PhysicalKey,
+    },
     window::Window,
 };
 
@@ -60,7 +65,7 @@ impl EventHandler {
                 WindowEvent::KeyboardInput {
                     event: key_event, ..
                 } => {
-                    self.handle_keyboard_input(key_event, game);
+                    self.handle_keyboard_input(key_event, game, window);
                 }
                 WindowEvent::MouseInput { state, button, .. } => {
                     self.handle_mouse_input(state, button, game);
@@ -122,10 +127,40 @@ impl EventHandler {
         window.request_redraw();
     }
 
-    fn handle_keyboard_input(&self, key_event: KeyEvent, game: &mut Game) {
-        // TODO: Implement keyboard input handling
-        // You can access key_event.physical_key, key_event.state, etc.
-        // and pass the input to the game
+    fn handle_keyboard_input(&self, key_event: KeyEvent, game: &mut Game, window: &Window) {
+        if key_event.state.is_pressed() {
+            match key_event.physical_key {
+                PhysicalKey::Code(KeyCode::KeyW)
+                    if !game.keys_processed[KeyCode::KeyW as usize] =>
+                {
+                    game.current_level = (game.current_level + 1) % game.levels.len();
+                    game.keys_processed[KeyCode::KeyW as usize] = true;
+                    window.request_redraw();
+                }
+                PhysicalKey::Code(KeyCode::KeyS)
+                    if !game.keys_processed[KeyCode::KeyS as usize] =>
+                {
+                    if game.current_level > 0 {
+                        game.current_level -= 1;
+                    } else {
+                        game.current_level = game.levels.len() - 1;
+                    }
+                    game.keys_processed[KeyCode::KeyS as usize] = true;
+                    window.request_redraw();
+                }
+                _ => {}
+            }
+        } else if key_event.state == ElementState::Released {
+            match key_event.physical_key {
+                PhysicalKey::Code(KeyCode::KeyW) => {
+                    game.keys_processed[KeyCode::KeyW as usize] = false;
+                }
+                PhysicalKey::Code(KeyCode::KeyS) => {
+                    game.keys_processed[KeyCode::KeyS as usize] = false;
+                }
+                _ => {}
+            }
+        }
     }
 
     fn handle_mouse_input(
