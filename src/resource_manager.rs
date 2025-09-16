@@ -10,8 +10,12 @@ use std::{
 };
 
 use glow::Context;
+use image::GenericImageView;
 
-use crate::shader::Shader;
+use crate::{
+    shader::Shader,
+    texture::Texture2D,
+};
 
 pub struct ResourceManager {
     pub gl: Rc<Context>,
@@ -19,6 +23,9 @@ pub struct ResourceManager {
 
 thread_local! {
     static SHADERS: LazyLock<Mutex<HashMap<String, Shader>>> =
+        LazyLock::new(|| Mutex::new(HashMap::new()));
+
+    static TEXTURES: LazyLock<Mutex<HashMap<String, Texture2D>>> =
         LazyLock::new(|| Mutex::new(HashMap::new()));
 }
 
@@ -43,6 +50,38 @@ impl ResourceManager {
         });
         shader
     }
+
+    pub fn load_texture_from_file(&self, path: &str, name: &str) -> Texture2D {
+        let texture = Texture2D::new(self.gl.clone());
+        println!("Loading texture from file: {}", path);
+        let img = image::open(path).expect("Failed to load texture");
+
+        let (width, height) = img.dimensions();
+
+        let data = img.to_rgba8().into_raw();
+
+        println!("Texture width: {}, height: {}", width, height);
+        
+        texture.generate(width, height, data.as_slice());
+        TEXTURES.with(|textures| {
+            textures
+                .lock()
+                .unwrap()
+                .insert(name.to_string(), texture.clone());
+        });
+        texture
+    }
+
+    pub fn get_texture(&self, name: String) -> Texture2D {
+        TEXTURES.with(|textures| {
+            textures
+                .lock()
+                .unwrap()
+                .get(&name)
+                .expect(&format!("Texture '{}' not found", name))
+                .clone()
+        })
+    }
 }
 
 impl Drop for ResourceManager {
@@ -53,5 +92,12 @@ impl Drop for ResourceManager {
                 shader.clean();
             }
         });
+
+        // TEXTURES.with(|textures| {
+        //     let textures = textures.lock().unwrap();
+        //     for (_, texture) in textures.iter() {
+        //         texture.clean();
+        //     }
+        // });
     }
 }

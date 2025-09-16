@@ -114,6 +114,8 @@ impl EventHandler {
         // Update OpenGL viewport
         unsafe {
             gl.viewport(0, 0, self.current_width as i32, self.current_height as i32);
+            gl.enable(glow::BLEND);
+            gl.blend_func(glow::SRC_ALPHA, glow::ONE_MINUS_SRC_ALPHA);
         }
 
         // Resize the surface

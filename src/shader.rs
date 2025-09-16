@@ -1,6 +1,7 @@
 use std::rc::Rc;
 
 use glow::*;
+use nalgebra_glm as glm;
 
 #[derive(Clone)]
 pub struct Shader {
@@ -90,6 +91,15 @@ impl Shader {
             let location = self.gl.get_uniform_location(self.program, name).unwrap();
             self.gl
                 .uniform_matrix_4_f32_slice(Some(&location), false, matrix);
+        }
+    }
+
+    pub fn set_vector3f(&self, name: &str, value: &glm::TVec3<f32>) {
+        //let name_c_string = CString::new(name).unwrap();
+        unsafe {
+            let location = self.gl.get_uniform_location(self.program, name).unwrap();
+            self.gl
+                .uniform_3_f32(Some(&location), value.x, value.y, value.z);
         }
     }
 

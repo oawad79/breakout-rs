@@ -1,4 +1,7 @@
-use std::rc::Rc;
+use std::{
+    fmt::format,
+    rc::Rc,
+};
 
 use glow::Context;
 use nalgebra_glm as glm;
@@ -8,6 +11,8 @@ use crate::{
     resource_manager::ResourceManager,
     sprite_renderer::SpriteRenderer,
 };
+
+static ROOT_PATH: &str = "C:/Users/Osama Awad/RustroverProjects/breakout-rs";
 
 #[derive(PartialEq)]
 enum GameState {
@@ -72,13 +77,33 @@ impl Game {
 
         let renderer = SpriteRenderer::new(self.gl.clone(), shader);
         self.renderer = Some(Box::new(renderer));
+
+        self.resource_manager.load_texture_from_file(
+            format!("{ROOT_PATH}/resources/textures/background.jpg").as_str(),
+            "background",
+        );
+        // self.resource_manager.load_texture_from_file(
+        //     format!("{}/resources/textures/block.png", ROOT_PATH).as_str(),
+        //     "block",
+        // );
+        // self.resource_manager.load_texture_from_file(
+        //     format!("{}/resources/textures/block_solid.png", ROOT_PATH).as_str(),
+        //     "block_solid",
+        // );
+
+        println!("Loaded textures....");
     }
 
     pub fn update(&self) {}
 
     pub fn render(&self) {
         if self.state == GameState::Active {
-            self.levels[self.current_level].draw(self.renderer.as_ref().unwrap());
+            self.renderer.as_ref().unwrap().draw_sprite(
+                &self.resource_manager.get_texture("background".to_string()),
+                &glm::vec2(0.0, 0.0),
+                &glm::vec2(self.width as _, self.height as _),
+            );
+            //self.levels[self.current_level].draw(self.renderer.as_ref().unwrap());
         }
     }
 }

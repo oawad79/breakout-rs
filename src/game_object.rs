@@ -13,6 +13,6 @@ impl GameObject {
     }
 
     pub fn draw(&self, renderer: &SpriteRenderer) {
-        renderer.draw_sprite(&self.position, &self.size);
+        //renderer.draw_sprite(&self.position, &self.size);
     }
 }

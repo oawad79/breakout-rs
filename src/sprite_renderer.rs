@@ -1,9 +1,15 @@
 use std::rc::Rc;
 
-use glow::Context;
-use glow::*;
+use glow::{
+    Context,
+    *,
+};
 use nalgebra_glm as glm;
-use crate::shader::Shader;
+
+use crate::{
+    shader::Shader,
+    texture::Texture2D,
+};
 
 pub struct SpriteRenderer {
     shader: Shader,
@@ -16,7 +22,7 @@ impl SpriteRenderer {
         let mut result = Self {
             shader,
             gl,
-            quad_vao: None
+            quad_vao: None,
         };
 
         result.init_rendering_data();
@@ -25,23 +31,26 @@ impl SpriteRenderer {
     }
 
     fn init_rendering_data(&mut self) {
-         #[rustfmt::skip]
-        let vertices: [f32; 12] = [
+        #[rustfmt::skip]
+        let vertices = [
             // pos      // tex
-            0.0, 1.0, 
-            1.0, 0.0, 
-            0.0, 0.0, 
-            0.0, 1.0, 
-            1.0, 1.0, 
-            1.0, 0.0,
+            0.0f32, 1.0, 0.0, 1.0,
+            1.0, 0.0, 1.0, 0.0,
+            0.0, 0.0, 0.0, 0.0,
+
+            0.0, 1.0, 0.0, 1.0,
+            1.0, 1.0, 1.0, 1.0,
+            1.0, 0.0, 1.0, 0.0
         ];
 
         unsafe {
-            self.gl.polygon_mode(glow::FRONT_AND_BACK, glow::LINE);
+            self.gl.polygon_mode(glow::FRONT_AND_BACK, glow::FILL);
             let vbo = self.gl.create_buffer().expect("Cannot create buffer");
-            self.quad_vao = Some(self.gl
-                .create_vertex_array()
-                .expect("Cannot create vertex array"));
+            self.quad_vao = Some(
+                self.gl
+                    .create_vertex_array()
+                    .expect("Cannot create vertex array"),
+            );
 
             self.gl.bind_vertex_array(self.quad_vao);
             self.gl.bind_buffer(glow::ARRAY_BUFFER, Some(vbo));
@@ -54,10 +63,10 @@ impl SpriteRenderer {
 
             self.gl.vertex_attrib_pointer_f32(
                 0,
-                2,
+                4,
                 glow::FLOAT,
                 false,
-                2 * std::mem::size_of::<f32>() as i32,
+                4 * std::mem::size_of::<f32>() as i32,
                 0,
             );
 
@@ -66,29 +75,36 @@ impl SpriteRenderer {
             self.gl.bind_buffer(glow::ARRAY_BUFFER, None);
             self.gl.bind_vertex_array(None);
         }
-
-
     }
 
-
-    pub fn draw_sprite(&self, position: &glm::TVec2<f32>, size: &glm::TVec2<f32>) {
+    pub fn draw_sprite(
+        &self,
+        texture: &Texture2D,
+        position: &glm::TVec2<f32>,
+        size: &glm::TVec2<f32>,
+    ) {
         self.shader.use_program();
 
         let mut model = glm::Mat4::identity();
-        
+
         model = glm::translate(&model, &glm::vec3(position.x, position.y, 0.0));
-        model = glm::translate(&model,&glm::vec3(0.5 * size.x as f32, 0.5 * size.y as f32, 0.0));
-        model = glm::rotate(&model, 0.0f32.to_radians(), &glm::vec3(0.0, 0.0, 1.0));         
-        model = glm::translate(&model, &glm::vec3(-0.5 * size.x as f32, -0.5 * size.y as f32, 0.0));
-        model = glm::scale(&model, &glm::vec3(size.x as f32, size.y as f32, 1.0));
+        model = glm::translate(&model, &glm::vec3(0.5 * size.x, 0.5 * size.y, 0.0));
+        model = glm::rotate(&model, 0.0f32.to_radians(), &glm::vec3(0.0, 0.0, 1.0));
+        model = glm::translate(&model, &glm::vec3(-0.5 * size.x, -0.5 * size.y, 0.0));
+        model = glm::scale(&model, &glm::vec3(size.x, size.y, 1.0));
 
         self.shader.matrix_4_f32("model", model.as_slice());
 
+        self.shader
+            .set_vector3f("spriteColor", &glm::vec3(1.0, 1.0, 1.0));
+
         unsafe {
+            self.gl.active_texture(glow::TEXTURE0);
+            texture.bind();
+
             self.gl.bind_vertex_array(self.quad_vao);
             self.gl.draw_arrays(glow::TRIANGLES, 0, 6);
             self.gl.bind_vertex_array(None);
-            
         }
     }
 }

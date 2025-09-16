@@ -13,6 +13,7 @@ mod game_object;
 mod resource_manager;
 mod shader;
 mod sprite_renderer;
+mod texture;
 mod window;
 
 use game::Game;
