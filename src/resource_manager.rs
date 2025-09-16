@@ -55,13 +55,14 @@ impl ResourceManager {
         let texture = Texture2D::new(self.gl.clone());
         println!("Loading texture from file: {}", path);
         let img = image::open(path).expect("Failed to load texture");
+        //let img = img.flipv();
 
         let (width, height) = img.dimensions();
 
         let data = img.to_rgba8().into_raw();
 
         println!("Texture width: {}, height: {}", width, height);
-        
+
         texture.generate(width, height, data.as_slice());
         TEXTURES.with(|textures| {
             textures
