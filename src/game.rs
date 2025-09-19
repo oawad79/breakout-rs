@@ -1,7 +1,4 @@
-use std::{
-    fmt::format,
-    rc::Rc,
-};
+use std::rc::Rc;
 
 use glow::Context;
 use nalgebra_glm as glm;
@@ -36,7 +33,7 @@ pub struct Game {
 impl Game {
     pub fn new(gl: Rc<Context>, width: u32, height: u32) -> Self {
         Self {
-            resource_manager: ResourceManager { gl: gl.clone() },
+            resource_manager: ResourceManager::new(gl.clone()),
             gl,
             state: GameState::Active,
             width,
@@ -61,14 +58,47 @@ impl Game {
             .use_program()
             .matrix_4_f32("projection", projection.as_slice());
 
+        self.resource_manager.load_texture_from_file(
+            format!("{ROOT_PATH}/resources/textures/background.jpg").as_str(),
+            "background",
+        );
+        self.resource_manager.load_texture_from_file(
+            format!("{ROOT_PATH}/resources/textures/block.png").as_str(),
+            "block",
+        );
+        self.resource_manager.load_texture_from_file(
+            format!("{ROOT_PATH}/resources/textures/block_solid.png").as_str(),
+            "block_solid",
+        );
+
         let mut game_level1 = GameLevel::new();
-        game_level1.load("resources/levels/one.lvl", self.width, self.height / 2);
+        game_level1.load(
+            "resources/levels/one.lvl",
+            self.width,
+            self.height / 2,
+            &self.resource_manager,
+        );
         let mut game_level2 = GameLevel::new();
-        game_level2.load("resources/levels/two.lvl", self.width, self.height / 2);
+        game_level2.load(
+            "resources/levels/two.lvl",
+            self.width,
+            self.height / 2,
+            &self.resource_manager,
+        );
         let mut game_level3 = GameLevel::new();
-        game_level3.load("resources/levels/three.lvl", self.width, self.height / 2);
+        game_level3.load(
+            "resources/levels/three.lvl",
+            self.width,
+            self.height / 2,
+            &self.resource_manager,
+        );
         let mut game_level4 = GameLevel::new();
-        game_level4.load("resources/levels/four.lvl", self.width, self.height / 2);
+        game_level4.load(
+            "resources/levels/four.lvl",
+            self.width,
+            self.height / 2,
+            &self.resource_manager,
+        );
 
         self.levels.push(game_level1);
         self.levels.push(game_level2);
@@ -78,19 +108,6 @@ impl Game {
         let renderer = SpriteRenderer::new(self.gl.clone(), shader);
         self.renderer = Some(Box::new(renderer));
 
-        self.resource_manager.load_texture_from_file(
-            format!("{ROOT_PATH}/resources/textures/background.jpg").as_str(),
-            "background",
-        );
-        // self.resource_manager.load_texture_from_file(
-        //     format!("{}/resources/textures/block.png", ROOT_PATH).as_str(),
-        //     "block",
-        // );
-        // self.resource_manager.load_texture_from_file(
-        //     format!("{}/resources/textures/block_solid.png", ROOT_PATH).as_str(),
-        //     "block_solid",
-        // );
-
         println!("Loaded textures....");
     }
 
@@ -99,11 +116,11 @@ impl Game {
     pub fn render(&self) {
         if self.state == GameState::Active {
             self.renderer.as_ref().unwrap().draw_sprite(
-                &self.resource_manager.get_texture("background".to_string()),
+                &self.resource_manager.get_texture("background"),
                 &glm::vec2(0.0, 0.0),
                 &glm::vec2(self.width as _, self.height as _),
             );
-            //self.levels[self.current_level].draw(self.renderer.as_ref().unwrap());
+            self.levels[self.current_level].draw(self.renderer.as_ref().unwrap());
         }
     }
 }
