@@ -119,6 +119,7 @@ impl Game {
                 &self.resource_manager.get_texture("background"),
                 &glm::vec2(0.0, 0.0),
                 &glm::vec2(self.width as _, self.height as _),
+                &glm::vec3(1.0, 1.0, 1.0),
             );
             self.levels[self.current_level].draw(self.renderer.as_ref().unwrap());
         }

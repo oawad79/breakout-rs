@@ -73,12 +73,30 @@ impl GameLevel {
                         pos,
                         size,
                         resource_manager.get_texture("block_solid"),
+                        glm::vec3(0.8, 0.8, 0.7),
                     ));
                 } else if tile_data[y][x] > 1 {
+                    let mut color = glm::vec3(1.0, 1.0, 1.0); // original: white
+                    match tile_data[y][x] {
+                        2 => {
+                            color = glm::vec3(0.2, 0.6, 1.0);
+                        }
+                        3 => {
+                            color = glm::vec3(0.0, 0.7, 0.0);
+                        }
+                        4 => {
+                            color = glm::vec3(0.8, 0.8, 0.4);
+                        }
+                        5 => {
+                            color = glm::vec3(1.0, 0.5, 0.0);
+                        }
+                        _ => {}
+                    }
                     self.bricks.push(GameObject::new(
                         pos,
                         size,
                         resource_manager.get_texture("block"),
+                        color,
                     ));
                 }
 

@@ -82,6 +82,7 @@ impl SpriteRenderer {
         texture: &Texture2D,
         position: &glm::TVec2<f32>,
         size: &glm::TVec2<f32>,
+        color: &glm::TVec3<f32>,
     ) {
         self.shader.use_program();
 
@@ -95,8 +96,7 @@ impl SpriteRenderer {
 
         self.shader.matrix_4_f32("model", model.as_slice());
 
-        self.shader
-            .set_vector3f("spriteColor", &glm::vec3(1.0, 1.0, 1.0));
+        self.shader.set_vector3f("spriteColor", &color);
 
         unsafe {
             self.gl.active_texture(glow::TEXTURE0);
