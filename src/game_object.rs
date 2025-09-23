@@ -8,8 +8,8 @@ use crate::{
 };
 
 pub struct GameObject {
-    position: glm::TVec2<f32>,
-    size: glm::TVec2<f32>,
+    pub position: glm::TVec2<f32>,
+    pub size: glm::TVec2<f32>,
     sprite: Rc<Texture2D>,
     color: glm::TVec3<f32>,
 }

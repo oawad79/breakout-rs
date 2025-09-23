@@ -1,15 +1,28 @@
-use std::rc::Rc;
+use std::{
+    rc::Rc,
+    sync::OnceLock,
+};
 
 use glow::Context;
 use nalgebra_glm as glm;
 
 use crate::{
     game_level::GameLevel,
-    resource_manager::ResourceManager,
+    game_object::GameObject,
+    resource_manager::{
+        self,
+        ResourceManager,
+    },
     sprite_renderer::SpriteRenderer,
 };
 
 static ROOT_PATH: &str = "C:/Users/Osama Awad/RustroverProjects/breakout-rs";
+
+static PLAYER_SIZE: OnceLock<glm::TVec2<f32>> = OnceLock::new();
+
+fn get_player_size() -> &'static glm::TVec2<f32> {
+    PLAYER_SIZE.get_or_init(|| glm::vec2(100.0, 20.0))
+}
 
 #[derive(PartialEq)]
 enum GameState {
@@ -22,12 +35,13 @@ pub struct Game {
     resource_manager: ResourceManager,
     gl: Rc<Context>,
     state: GameState,
-    width: u32,
-    height: u32,
+    pub width: u32,
+    pub height: u32,
     pub levels: Vec<GameLevel>,
     renderer: Option<Box<SpriteRenderer>>,
     pub current_level: usize,
     pub keys_processed: [bool; 1024],
+    pub player: Option<Box<GameObject>>,
 }
 
 impl Game {
@@ -42,6 +56,7 @@ impl Game {
             renderer: None,
             current_level: 0,
             keys_processed: [false; 1024],
+            player: None,
         }
     }
 
@@ -69,6 +84,11 @@ impl Game {
         self.resource_manager.load_texture_from_file(
             format!("{ROOT_PATH}/resources/textures/block_solid.png").as_str(),
             "block_solid",
+        );
+
+        self.resource_manager.load_texture_from_file(
+            format!("{ROOT_PATH}/resources/textures/paddle.png").as_str(),
+            "paddle",
         );
 
         let mut game_level1 = GameLevel::new();
@@ -108,6 +128,19 @@ impl Game {
         let renderer = SpriteRenderer::new(self.gl.clone(), shader);
         self.renderer = Some(Box::new(renderer));
 
+        let player = GameObject::new(
+            glm::vec2(
+                self.width as f32 / 2.0 - get_player_size().x / 2.0,
+                self.height as f32 - get_player_size().y,
+            ),
+            *get_player_size(),
+            self.resource_manager.get_texture("paddle"),
+            glm::vec3(1.0, 1.0, 1.0),
+        );
+
+        let player = Box::new(player);
+        self.player = Some(player);
+
         println!("Loaded textures....");
     }
 
@@ -122,6 +155,10 @@ impl Game {
                 &glm::vec3(1.0, 1.0, 1.0),
             );
             self.levels[self.current_level].draw(self.renderer.as_ref().unwrap());
+            self.player
+                .as_ref()
+                .unwrap()
+                .draw(self.renderer.as_ref().unwrap());
         }
     }
 }
@@ -130,6 +167,10 @@ impl Drop for Game {
     fn drop(&mut self) {
         if let Some(renderer) = self.renderer.take() {
             drop(renderer);
+        }
+
+        if let Some(player) = self.player.take() {
+            drop(player);
         }
     }
 }

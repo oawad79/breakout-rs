@@ -1,4 +1,7 @@
-use std::rc::Rc;
+use std::{
+    rc::Rc,
+    time::Instant,
+};
 
 use glow::{
     Context,
@@ -28,9 +31,13 @@ use winit::{
 
 use crate::game::Game;
 
+const PLAYER_VELOCITY: f32 = 500.0;
+
 pub struct EventHandler {
     pub current_width: u32,
     pub current_height: u32,
+    last_frame_time: Instant,
+    delta_time: f32,
 }
 
 impl EventHandler {
@@ -38,6 +45,8 @@ impl EventHandler {
         Self {
             current_width: width,
             current_height: height,
+            last_frame_time: Instant::now(),
+            delta_time: 0.0,
         }
     }
     pub fn handle_event(
@@ -50,32 +59,64 @@ impl EventHandler {
         gl_context: &PossiblyCurrentContext,
         window: &Window,
     ) {
+        // Calculate delta time
+        let current_time = Instant::now();
+
         #[allow(clippy::too_many_arguments)]
-        if let Event::WindowEvent { event, .. } = event {
-            match event {
-                WindowEvent::CloseRequested => {
-                    self.handle_close_requested(elwt);
-                }
-                WindowEvent::RedrawRequested => {
-                    self.handle_redraw_requested(game, gl, gl_surface, gl_context);
-                }
-                WindowEvent::Resized(physical_size) => {
-                    self.handle_resize(physical_size, gl, gl_surface, gl_context, window);
-                }
-                WindowEvent::KeyboardInput {
-                    event: key_event, ..
-                } => {
-                    self.handle_keyboard_input(key_event, game, window);
-                }
-                WindowEvent::MouseInput { state, button, .. } => {
-                    self.handle_mouse_input(state, button, game);
-                }
-                WindowEvent::MouseWheel { delta, .. } => {
-                    self.handle_mouse_wheel(delta, game);
-                }
-                _ => (),
+        //if let Event::WindowEvent { event, .. } = event {
+        match event {
+            Event::AboutToWait => {
+                let current_time = Instant::now();
+                self.delta_time = current_time
+                    .duration_since(self.last_frame_time)
+                    .as_secs_f32();
+                self.last_frame_time = current_time;
+
+                // Request a redraw to keep the game loop running
+                window.request_redraw();
             }
+            Event::WindowEvent {
+                event: WindowEvent::CloseRequested,
+                ..
+            } => {
+                self.handle_close_requested(elwt);
+            }
+            Event::WindowEvent {
+                event: WindowEvent::RedrawRequested,
+                ..
+            } => {
+                self.handle_redraw_requested(game, gl, gl_surface, gl_context);
+            }
+            Event::WindowEvent {
+                event: WindowEvent::Resized(physical_size),
+                ..
+            } => {
+                self.handle_resize(physical_size, gl, gl_surface, gl_context, window);
+            }
+            Event::WindowEvent {
+                event:
+                    WindowEvent::KeyboardInput {
+                        event: key_event, ..
+                    },
+                ..
+            } => {
+                self.handle_keyboard_input(key_event, game, window, self.delta_time);
+            }
+            Event::WindowEvent {
+                event: WindowEvent::MouseInput { state, button, .. },
+                ..
+            } => {
+                self.handle_mouse_input(state, button, game);
+            }
+            Event::WindowEvent {
+                event: WindowEvent::MouseWheel { delta, .. },
+                ..
+            } => {
+                self.handle_mouse_wheel(delta, game);
+            }
+            _ => (),
         }
+        //}
     }
 
     fn handle_close_requested(&self, elwt: &EventLoopWindowTarget<()>) {
@@ -129,7 +170,15 @@ impl EventHandler {
         window.request_redraw();
     }
 
-    fn handle_keyboard_input(&self, key_event: KeyEvent, game: &mut Game, window: &Window) {
+    fn handle_keyboard_input(
+        &self,
+        key_event: KeyEvent,
+        game: &mut Game,
+        window: &Window,
+        dt: f32,
+    ) {
+        let velocity = PLAYER_VELOCITY * dt * 4.0;
+
         if key_event.state.is_pressed() {
             match key_event.physical_key {
                 PhysicalKey::Code(KeyCode::KeyW)
@@ -149,6 +198,24 @@ impl EventHandler {
                     }
                     game.keys_processed[KeyCode::KeyS as usize] = true;
                     window.request_redraw();
+                }
+                PhysicalKey::Code(KeyCode::KeyA) => {
+                    if let Some(player) = &mut game.player {
+                        if player.position.x >= 0.0 {
+                            player.position.x -= velocity;
+                            window.request_redraw();
+                            //dbg!(player.position.x);
+                        }
+                    }
+                }
+                PhysicalKey::Code(KeyCode::KeyD) => {
+                    if let Some(player) = &mut game.player {
+                        if player.position.x <= game.width as f32 - player.size.x {
+                            player.position.x += velocity;
+                            window.request_redraw();
+                            //dbg!(player.position.x);
+                        }
+                    }
                 }
                 _ => {}
             }
