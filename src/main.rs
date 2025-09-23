@@ -17,6 +17,7 @@ mod texture;
 mod window;
 
 use game::Game;
+use winit::event_loop::ControlFlow;
 
 use crate::{
     event_handler::EventHandler,
@@ -39,6 +40,8 @@ fn main() {
     game.init();
 
     let mut event_handler = EventHandler::new(SCR_WIDTH, SCR_HEIGHT);
+
+    //event_loop.set_control_flow(ControlFlow::Poll);
 
     let _ = event_loop.run(move |event, elwt| {
         event_handler.handle_event(

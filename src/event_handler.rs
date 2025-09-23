@@ -1,4 +1,5 @@
 use std::{
+    collections::HashSet,
     rc::Rc,
     time::Instant,
 };
@@ -38,6 +39,7 @@ pub struct EventHandler {
     pub current_height: u32,
     last_frame_time: Instant,
     delta_time: f32,
+    pressed_keys: HashSet<PhysicalKey>,
 }
 
 impl EventHandler {
@@ -47,6 +49,7 @@ impl EventHandler {
             current_height: height,
             last_frame_time: Instant::now(),
             delta_time: 0.0,
+            pressed_keys: HashSet::new(),
         }
     }
     pub fn handle_event(
@@ -59,9 +62,6 @@ impl EventHandler {
         gl_context: &PossiblyCurrentContext,
         window: &Window,
     ) {
-        // Calculate delta time
-        let current_time = Instant::now();
-
         #[allow(clippy::too_many_arguments)]
         //if let Event::WindowEvent { event, .. } = event {
         match event {
@@ -72,6 +72,7 @@ impl EventHandler {
                     .as_secs_f32();
                 self.last_frame_time = current_time;
 
+                self.handle_continuous_input(game);
                 // Request a redraw to keep the game loop running
                 window.request_redraw();
             }
@@ -117,6 +118,27 @@ impl EventHandler {
             _ => (),
         }
         //}
+    }
+
+    fn handle_continuous_input(&self, game: &mut Game) {
+        let velocity = PLAYER_VELOCITY * self.delta_time;
+
+        if let Some(player) = &mut game.player {
+            if self
+                .pressed_keys
+                .contains(&PhysicalKey::Code(KeyCode::KeyA))
+                && player.position.x >= 0.0
+            {
+                player.position.x -= velocity;
+            }
+            if self
+                .pressed_keys
+                .contains(&PhysicalKey::Code(KeyCode::KeyD))
+                && player.position.x <= game.width as f32 - player.size.x
+            {
+                player.position.x += velocity;
+            }
+        }
     }
 
     fn handle_close_requested(&self, elwt: &EventLoopWindowTarget<()>) {
@@ -171,15 +193,16 @@ impl EventHandler {
     }
 
     fn handle_keyboard_input(
-        &self,
+        &mut self,
         key_event: KeyEvent,
         game: &mut Game,
         window: &Window,
         dt: f32,
     ) {
-        let velocity = PLAYER_VELOCITY * dt * 4.0;
-
         if key_event.state.is_pressed() {
+            self.pressed_keys.insert(key_event.physical_key);
+
+            let velocity = PLAYER_VELOCITY * dt;
             match key_event.physical_key {
                 PhysicalKey::Code(KeyCode::KeyW)
                     if !game.keys_processed[KeyCode::KeyW as usize] =>
@@ -200,26 +223,27 @@ impl EventHandler {
                     window.request_redraw();
                 }
                 PhysicalKey::Code(KeyCode::KeyA) => {
-                    if let Some(player) = &mut game.player {
-                        if player.position.x >= 0.0 {
-                            player.position.x -= velocity;
-                            window.request_redraw();
-                            //dbg!(player.position.x);
-                        }
+                    if let Some(player) = &mut game.player
+                        && player.position.x >= 0.0
+                    {
+                        player.position.x -= velocity;
+                        //window.request_redraw();
+                        //dbg!(player.position.x);
                     }
                 }
                 PhysicalKey::Code(KeyCode::KeyD) => {
-                    if let Some(player) = &mut game.player {
-                        if player.position.x <= game.width as f32 - player.size.x {
-                            player.position.x += velocity;
-                            window.request_redraw();
-                            //dbg!(player.position.x);
-                        }
+                    if let Some(player) = &mut game.player
+                        && player.position.x <= game.width as f32 - player.size.x
+                    {
+                        player.position.x += velocity;
+                        //window.request_redraw();
+                        //dbg!(player.position.x);
                     }
                 }
                 _ => {}
             }
         } else if key_event.state == ElementState::Released {
+            self.pressed_keys.remove(&key_event.physical_key);
             match key_event.physical_key {
                 PhysicalKey::Code(KeyCode::KeyW) => {
                     game.keys_processed[KeyCode::KeyW as usize] = false;
