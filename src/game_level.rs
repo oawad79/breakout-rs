@@ -15,7 +15,7 @@ use crate::{
 };
 
 pub struct GameLevel {
-    bricks: Vec<GameObject>,
+    pub bricks: Vec<GameObject>,
 }
 
 impl GameLevel {
@@ -72,6 +72,7 @@ impl GameLevel {
                     self.bricks.push(GameObject::new(
                         pos,
                         size,
+                        glm::vec2(0.0, 0.0),
                         resource_manager.get_texture("block_solid"),
                         glm::vec3(0.8, 0.8, 0.7),
                     ));
@@ -95,6 +96,7 @@ impl GameLevel {
                     self.bricks.push(GameObject::new(
                         pos,
                         size,
+                        glm::vec2(0.0, 0.0),
                         resource_manager.get_texture("block"),
                         color,
                     ));
@@ -108,7 +110,9 @@ impl GameLevel {
 
     pub fn draw(&self, renderer: &SpriteRenderer) {
         for brick in &self.bricks {
-            brick.draw(renderer);
+            if !brick.destroyed {
+                brick.draw(renderer);
+            }
         }
     }
 }

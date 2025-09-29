@@ -15,6 +15,7 @@ use glutin::{
         Surface,
     },
 };
+use nalgebra_glm as glm;
 use winit::{
     event::{
         ElementState,
@@ -130,6 +131,9 @@ impl EventHandler {
                 && player.position.x >= 0.0
             {
                 player.position.x -= velocity;
+                if game.ball.as_ref().unwrap().stuck {
+                    game.ball.as_mut().unwrap().game_obj.position.x -= velocity;
+                }
             }
             if self
                 .pressed_keys
@@ -137,6 +141,9 @@ impl EventHandler {
                 && player.position.x <= game.width as f32 - player.size.x
             {
                 player.position.x += velocity;
+                if game.ball.as_ref().unwrap().stuck {
+                    game.ball.as_mut().unwrap().game_obj.position.x += velocity;
+                }
             }
         }
     }
@@ -152,7 +159,7 @@ impl EventHandler {
         gl_surface: &Surface<glutin::surface::WindowSurface>,
         gl_context: &PossiblyCurrentContext,
     ) {
-        game.update();
+        game.update(self.delta_time);
 
         unsafe {
             gl.clear_color(0.2, 0.3, 0.3, 1.0);
@@ -222,11 +229,18 @@ impl EventHandler {
                     game.keys_processed[KeyCode::KeyS as usize] = true;
                     window.request_redraw();
                 }
+                PhysicalKey::Code(KeyCode::Space) => {
+                    game.ball.as_mut().unwrap().stuck = false;
+                    game.ball.as_mut().unwrap().game_obj.velocity = glm::vec2(100.0, -350.0);
+                }
                 PhysicalKey::Code(KeyCode::KeyA) => {
                     if let Some(player) = &mut game.player
                         && player.position.x >= 0.0
                     {
                         player.position.x -= velocity;
+                        if game.ball.as_ref().unwrap().stuck {
+                            game.ball.as_mut().unwrap().game_obj.position.x -= velocity;
+                        }
                         //window.request_redraw();
                         //dbg!(player.position.x);
                     }
@@ -236,6 +250,9 @@ impl EventHandler {
                         && player.position.x <= game.width as f32 - player.size.x
                     {
                         player.position.x += velocity;
+                        if game.ball.as_ref().unwrap().stuck {
+                            game.ball.as_mut().unwrap().game_obj.position.x += velocity;
+                        }
                         //window.request_redraw();
                         //dbg!(player.position.x);
                     }

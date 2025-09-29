@@ -10,22 +10,29 @@ use crate::{
 pub struct GameObject {
     pub position: glm::TVec2<f32>,
     pub size: glm::TVec2<f32>,
+    pub velocity: glm::TVec2<f32>,
     sprite: Rc<Texture2D>,
-    color: glm::TVec3<f32>,
+    pub color: glm::TVec3<f32>,
+    pub is_solid: bool,
+    pub destroyed: bool,
 }
 
 impl GameObject {
     pub fn new(
         position: glm::TVec2<f32>,
         size: glm::TVec2<f32>,
+        velocity: glm::TVec2<f32>,
         sprite: Rc<Texture2D>,
         color: glm::TVec3<f32>,
     ) -> Self {
         Self {
             position,
             size,
+            velocity,
             sprite,
             color,
+            is_solid: false,
+            destroyed: false,
         }
     }
 
