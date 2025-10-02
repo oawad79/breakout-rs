@@ -69,14 +69,17 @@ impl GameLevel {
 
                 if tile_data[y][x] == 1 {
                     //solid
-                    self.bricks.push(GameObject::new(
+                    let mut solid_brick = GameObject::new(
                         pos,
                         size,
                         glm::vec2(0.0, 0.0),
                         resource_manager.get_texture("block_solid"),
                         glm::vec3(0.8, 0.8, 0.7),
-                    ));
+                    );
+                    solid_brick.is_solid = true;
+                    self.bricks.push(solid_brick);
                 } else if tile_data[y][x] > 1 {
+                    //non solid
                     let mut color = glm::vec3(1.0, 1.0, 1.0); // original: white
                     match tile_data[y][x] {
                         2 => {
@@ -114,5 +117,14 @@ impl GameLevel {
                 brick.draw(renderer);
             }
         }
+    }
+
+    pub fn is_completed(&self) -> bool {
+        for tile in self.bricks.iter() {
+            if !tile.is_solid && !tile.destroyed {
+                return false;
+            }
+        }
+        true
     }
 }

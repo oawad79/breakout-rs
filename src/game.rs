@@ -195,6 +195,13 @@ impl Game {
             }
             self.reset_player();
         }
+
+        if self.state == GameState::Active && self.levels[self.current_level].is_completed() {
+            self.reset_level();
+            self.reset_player();
+            //self.effects.as_mut().unwrap().chaos = true;
+            self.state = GameState::Win;
+        }
     }
 
     pub fn render(&self) {
@@ -261,7 +268,7 @@ impl Game {
 
     pub fn reset_player(&mut self) {
         // reset player/ball stats
-        self.player.as_mut().unwrap().size = PLAYER_SIZE.clone();
+        self.player.as_mut().unwrap().size = *PLAYER_SIZE;
         self.player.as_mut().unwrap().position = glm::vec2(
             self.width as f32 / 2.0 - PLAYER_SIZE.x / 2.0,
             self.height as f32 - PLAYER_SIZE.y,
@@ -269,7 +276,7 @@ impl Game {
         self.ball.as_mut().unwrap().reset(
             self.player.as_ref().unwrap().position
                 + glm::vec2(PLAYER_SIZE.x / 2.0 - BALL_RADIUS, -(BALL_RADIUS * 2.0)),
-            INITIAL_BALL_VELOCITY.clone(),
+            *INITIAL_BALL_VELOCITY,
         );
         // also disable all active powerups
         //self.effects.as_mut().unwrap().chaos = false;
@@ -281,14 +288,12 @@ impl Game {
     }
 
     fn do_collisions(&mut self) {
-        for (index, box_obj) in self.levels[self.current_level]
-            .bricks
-            .iter_mut()
-            .enumerate()
-        {
+        for box_obj in self.levels[self.current_level].bricks.iter_mut() {
             let collision = Game::check_collision(self.ball.as_ref().unwrap(), box_obj);
-            if !box_obj.destroyed && collision.0 && !box_obj.is_solid {
-                box_obj.destroyed = true;
+            if !box_obj.destroyed && collision.0 {
+                if !box_obj.is_solid {
+                    box_obj.destroyed = true;
+                }
 
                 let direction = collision.1;
                 let diff_vector = collision.2;
@@ -341,7 +346,7 @@ impl Game {
                     * glm::length(&old_velocity); // keep speed consistent over both axes (multiply by length of old velocity, so total strength is not changed)
             // fix sticky paddle
             self.ball.as_mut().unwrap().game_obj.velocity.y =
-                -1.0 * self.ball.as_ref().unwrap().game_obj.velocity.y.abs();
+                -self.ball.as_ref().unwrap().game_obj.velocity.y.abs();
 
             // if Sticky powerup is activated, also stick ball to paddle once new velocity vectors
             // were calculated
